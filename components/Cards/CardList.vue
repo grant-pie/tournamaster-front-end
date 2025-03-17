@@ -1,37 +1,52 @@
-<!-- components/Cards/CardItem.vue -->
+<!-- components/Cards/CardList.vue -->
 <template>
-    <div class="bg-white shadow rounded p-4 flex justify-between">
-      <div>
-        <h3 class="font-bold">Card ID: {{ card.multiverseId }}</h3>
-        <div class="mt-2">
-          <img 
-            :src="`https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=${card.multiverseId}&type=card`" 
-            :alt="`Card ${card.multiverseId}`"
-            class="w-40"
-          />
-        </div>
-      </div>
-
+  <div>
+    <div v-if="loading" class="text-center py-10">
+      <p>Loading cards...</p>
     </div>
-  </template>
-  
-  <script setup>
-  import { useCardStore } from '~/stores/card';
-  
-  const props = defineProps({
-    card: {
-      type: Object,
-      required: true
-    },
-    userId: {
-      type: String,
-      required: true
-    }
-  });
-  
-  const cardStore = useCardStore();
-  
-  const removeCard = () => {
-    cardStore.removeCard(props.card.id, props.userId);
-  };
-  </script>
+    
+    <div v-else-if="error" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      {{ error }}
+    </div>
+    
+    <div v-else-if="cards.length === 0" class="text-center py-10">
+      <p>No cards found.</p>
+    </div>
+    
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <CardItem 
+        v-for="card in cards" 
+        :key="card.id" 
+        :card="card" 
+        :userId="userId"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch } from 'vue';
+import { useCardStore } from '~/stores/card';
+import { storeToRefs } from 'pinia';
+import CardItem from '~/components/Cards/CardItem.vue';
+
+const props = defineProps({
+  userId: {
+    type: String,
+    required: true
+  }
+});
+
+const cardStore = useCardStore();
+const { userCards, loading, error } = storeToRefs(cardStore);
+const cards = userCards;
+
+onMounted(async () => {
+  await cardStore.fetchUserCards(props.userId);
+});
+
+// Refetch cards when userId changes
+watch(() => props.userId, async (newUserId) => {
+  await cardStore.fetchUserCards(newUserId);
+});
+</script>

@@ -28,7 +28,7 @@
   import { useAuthStore } from '~/stores/auth';
   import Header from '~/components/Layout/Header.vue';
   import LoginButton from '~/components/Auth/LoginButton.vue';
-  import UserCardsList from '~/components/User/UserCardsList.vue';
+  import UserCardList from '~/components/User/UserCardsList.vue';
   
   definePageMeta({
     middleware: ['auth']

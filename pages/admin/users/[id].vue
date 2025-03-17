@@ -73,6 +73,7 @@
         
         <!-- Import Cards List -->
         <ImportCardsList :userId="userId" />
+        <ImportDeck :userId="userId" />
         
         <!-- User's Cards -->
         <div class="bg-white p-6 rounded shadow-md">
@@ -92,7 +93,8 @@ import { useCardStore } from '~/stores/card';
 import { useAuthStore } from '~/stores/auth';
 import Header from '~/components/Layout/Header.vue';
 import UserCardsList from '~/components/User/UserCardsList.vue';
-import ImportCardsList from '../ImportCardsList.vue';
+import ImportCardsList from '~/components/Admin/ImportCardsList.vue';
+import ImportDeck from '~/components/Admin/ImportDeck.vue';
 import { useRuntimeConfig } from '#app';
 
 definePageMeta({
