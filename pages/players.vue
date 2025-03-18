@@ -75,12 +75,10 @@
   watch(selectedUserName, () => {
     console.log(selectedUserName.value);
   });
+  
   onMounted(() => {
     fetchUsernames();
   });
-
-
-
 
 
   definePageMeta({

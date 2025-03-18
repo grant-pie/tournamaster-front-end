@@ -125,6 +125,39 @@ export const useDeckStore = defineStore('deck', {
         this.loading = false;
       }
     },
+
+    async createDeckForUser(deckData: { name: string; description?: string }, userId: string) {
+      const authStore = useAuthStore();
+      const config = useRuntimeConfig();
+      if (!authStore.token) return null;
+      
+      try {
+        this.loading = true;
+        this.error = null;
+        
+        const response = await $fetch<DeckResponse>(`${config.public.apiBaseUrl}/decks/user/${userId}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: deckData
+        });
+        
+        // Update decks list
+        if (authStore.user?.id) {
+          await this.fetchUserDecks(authStore.user.id);
+        }
+        
+        return response.deck;
+      } catch (err: any) {
+        console.error('Error creating deck:', err);
+        this.error = err.message || 'Failed to create deck';
+        return null;
+      } finally {
+        this.loading = false;
+      }
+    },
     
     async updateDeck(deckId: string, deckData: { name?: string; description?: string }) {
       const authStore = useAuthStore();
@@ -200,7 +233,8 @@ export const useDeckStore = defineStore('deck', {
       }
     },
     
-    async addCardToDeck(deckId: string, cardId: string) {
+    // Updated to match backend route: POST /decks/:deckId/user-cards/:userCardId
+    async addUserCardToDeck(deckId: string, userCardId: string) {
       const authStore = useAuthStore();
       const config = useRuntimeConfig();
       if (!authStore.token) return null;
@@ -209,7 +243,7 @@ export const useDeckStore = defineStore('deck', {
         this.loading = true;
         this.error = null;
         
-        const response = await $fetch<DeckResponse>(`${config.public.apiBaseUrl}/decks/${deckId}/cards/${cardId}`, {
+        const response = await $fetch<DeckResponse>(`${config.public.apiBaseUrl}/decks/${deckId}/user-cards/${userCardId}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
@@ -230,8 +264,8 @@ export const useDeckStore = defineStore('deck', {
         this.loading = false;
       }
     },
-    
-    async removeCardFromDeck(deckId: string, cardId: string) {
+
+    async addUserCardToDeckForUser(userId: string, deckId: string, userCardId: string) {
       const authStore = useAuthStore();
       const config = useRuntimeConfig();
       if (!authStore.token) return null;
@@ -240,7 +274,41 @@ export const useDeckStore = defineStore('deck', {
         this.loading = true;
         this.error = null;
         
-        const response = await $fetch<DeckResponse>(`${config.public.apiBaseUrl}/decks/${deckId}/cards/${cardId}`, {
+        const response = await $fetch<DeckResponse>(`${config.public.apiBaseUrl}/decks/user/${userId}/${deckId}/user-cards`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authStore.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: { userCardId }
+        });
+        
+        // Update the current deck if it's the one we just modified
+        if (this.currentDeck && this.currentDeck.id === deckId) {
+          this.currentDeck = response.deck;
+        }
+        
+        return response.deck;
+      } catch (err: any) {
+        console.error('Error adding card to deck for user:', err);
+        this.error = err.message || 'Failed to add card to deck';
+        return null;
+      } finally {
+        this.loading = false;
+      }
+    },
+  
+    // Updated to match backend route: DELETE /decks/:deckId/user-cards/:userCardId
+    async removeUserCardFromDeck(deckId: string, userCardId: string) {
+      const authStore = useAuthStore();
+      const config = useRuntimeConfig();
+      if (!authStore.token) return null;
+      
+      try {
+        this.loading = true;
+        this.error = null;
+        
+        const response = await $fetch<DeckResponse>(`${config.public.apiBaseUrl}/decks/${deckId}/user-cards/${userCardId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
@@ -260,6 +328,8 @@ export const useDeckStore = defineStore('deck', {
       } finally {
         this.loading = false;
       }
-    }
+    },
+    
+  
   }
 });

@@ -279,18 +279,18 @@
       }
       
       // 2. Create a new deck
-      const newDeck = await deckStore.createDeck({
+      const newDeck = await deckStore.createDeckForUser({
         name: deckName.value,
         description: `Imported deck with ${parsedCards.value.length} cards`
-      });
-      
+      }, props.userId);
+
       // 3. Add all cards to the deck
       for (const card of parsedCards.value) {
         if (card.multiverseId && card.added) {
           try {
             // For each card, add it to the deck according to its quantity
             for (let i = 0; i < card.qty; i++) {
-              await deckStore.addCardToDeck(newDeck.id, card.multiverseId);
+              await deckStore.addCardToDeckForUser(newDeck.id, card.multiverseId, props.userId);
             }
             card.addedToDeck = true;
           } catch (err: any) {
