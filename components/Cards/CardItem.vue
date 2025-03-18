@@ -15,6 +15,7 @@
         <p v-if="card.cardDetails.manaCost">Mana Cost: {{ card.cardDetails.manaCost }}</p>
         <p v-if="card.cardDetails.rarity">Rarity: {{ card.cardDetails.rarity }}</p>
         <p v-if="card.cardDetails.set">Set: {{ card.cardDetails.setName }} ({{ card.cardDetails.set }})</p>
+        <p v-if="card.createdAt">Received: {{ formattedCreatedAt }}</p>
       </div>
     </div>
     <div>
@@ -30,7 +31,7 @@
 
 <script setup>
 import { useCardStore } from '~/stores/card';
-
+import { onMounted, computed } from 'vue'
 const props = defineProps({
   card: {
     type: Object,
@@ -47,4 +48,10 @@ const cardStore = useCardStore();
 const removeCard = () => {
   cardStore.removeCard(props.card.id, props.userId);
 };
+
+const formattedCreatedAt = computed(() => {
+  const date = new Date(props.card.createdAt);
+  // Format as yyyy-mm-dd
+  return date.toISOString().split('T')[0]
+});
 </script>

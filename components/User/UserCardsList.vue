@@ -128,6 +128,37 @@
         </div>
         
         <div>
+          <label class="block text-sm font-medium text-gray-700">Received On</label>
+          <input 
+            v-model="searchParams.createdAt" 
+            type="date" 
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Received Between</label>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <input 
+                v-model="searchParams.createdAtStart" 
+                type="date" 
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="From"
+              />
+            </div>
+            <div>
+              <input 
+                v-model="searchParams.createdAtEnd" 
+                type="date" 
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                placeholder="To"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div>
           <label class="block text-sm font-medium text-gray-700">Sort By</label>
           <div class="flex space-x-2">
             <select 
@@ -139,6 +170,7 @@
               <option value="convertedManaCost">CMC</option>
               <option value="rarity">Rarity</option>
               <option value="set">Set</option>
+              <option value="createdAt">Received Date</option>
             </select>
             <select 
               v-model="searchParams.orderDirection" 
@@ -227,6 +259,9 @@ const searchParams = ref({
   minToughness: '',
   text: '',
   artist: '',
+  createdAt: '',
+  createdAtStart: '',
+  createdAtEnd: '',
   orderBy: '',
   orderDirection: 'ASC'
 });
@@ -238,6 +273,29 @@ const selectedColors = ref([]);
 watch(selectedColors, (newColors) => {
   searchParams.value.colors = newColors.length > 0 ? newColors : undefined;
 });
+
+// Watch for changes in date range to clear single date
+watch(() => [searchParams.value.createdAtStart, searchParams.value.createdAtEnd], ([start, end]) => {
+  if (start || end) {
+    searchParams.value.createdAt = '';
+  }
+});
+
+// Watch for changes in single date to clear date range
+watch(() => searchParams.value.createdAt, (newDate) => {
+  if (newDate) {
+    searchParams.value.createdAtStart = '';
+    searchParams.value.createdAtEnd = '';
+  }
+});
+
+// Format dates to yyyy-mm-dd format for API
+const formatDateForApi = (dateString) => {
+  if (!dateString) return '';
+  
+  // HTML date inputs return YYYY-MM-DD format which is what we want
+  return dateString;
+};
 
 // Load cards on component mount
 onMounted(async () => {
@@ -265,6 +323,19 @@ const searchCards = async () => {
     cleanParams.colors = selectedColors.value;
   }
   
+  // Format dates for API
+  if (cleanParams.createdAt) {
+    cleanParams.createdAt = formatDateForApi(cleanParams.createdAt);
+  }
+  
+  if (cleanParams.createdAtStart) {
+    cleanParams.createdAtStart = formatDateForApi(cleanParams.createdAtStart);
+  }
+  
+  if (cleanParams.createdAtEnd) {
+    cleanParams.createdAtEnd = formatDateForApi(cleanParams.createdAtEnd);
+  }
+  
   await cardStore.searchUserCards(props.userId, cleanParams);
 };
 
@@ -281,6 +352,9 @@ const resetSearch = () => {
     minToughness: '',
     text: '',
     artist: '',
+    createdAt: '',
+    createdAtStart: '',
+    createdAtEnd: '',
     orderBy: '',
     orderDirection: 'ASC'
   };
