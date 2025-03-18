@@ -20,6 +20,7 @@
     </div>
     <div>
       <button 
+        v-show="userIsAdmin"
         @click="removeCard" 
         class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-xs"
       >
@@ -39,7 +40,11 @@ const props = defineProps({
   },
   userId: {
     type: String,
-    required: true
+    required: false
+  },
+  userIsAdmin: {
+    type: Boolean,
+    require: false
   }
 });
 

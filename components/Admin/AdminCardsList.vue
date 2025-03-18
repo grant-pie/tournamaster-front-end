@@ -224,6 +224,7 @@
           :key="card.id" 
           :card="card" 
           :userId="userId"
+          :userIsAdmin="true"
         />
       </div>
     </div>

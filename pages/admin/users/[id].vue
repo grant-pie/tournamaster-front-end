@@ -78,7 +78,7 @@
         <!-- User's Cards -->
         <div class="bg-white p-6 rounded shadow-md">
           <h2 class="text-2xl font-bold mb-4">User's Cards</h2>
-          <UserCardsList :userId="userId" />
+          <AdminCardsList :userId="userId" />
         </div>
       </div>
     </div>
@@ -92,7 +92,7 @@ import { storeToRefs } from 'pinia';
 import { useCardStore } from '~/stores/card';
 import { useAuthStore } from '~/stores/auth';
 import Header from '~/components/Layout/Header.vue';
-import UserCardsList from '~/components/User/UserCardsList.vue';
+import AdminCardsList from '~/components/Admin/AdminCardsList.vue';
 import ImportCardsList from '~/components/Admin/ImportCardsList.vue';
 import ImportDeck from '~/components/Admin/ImportDeck.vue';
 import { useRuntimeConfig } from '#app';

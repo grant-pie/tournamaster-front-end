@@ -62,6 +62,53 @@ export const useCardStore = defineStore('card', {
       }
     },
     
+    async fetchCardsByUsername(username: string, searchParams?: Record<string, any>) {
+      const config = useRuntimeConfig();
+      
+      try {
+        this.loading = true;
+        this.error = null;
+        
+        let url = `${config.public.apiBaseUrl}/user-cards/username/${username}`;
+        
+        // Add search parameters if provided
+        if (searchParams) {
+          // Build query string
+          const queryParams = new URLSearchParams();
+          for (const [key, value] of Object.entries(searchParams)) {
+            if (value !== undefined && value !== null && value !== '') {
+              // Handle array values (like colors)
+              if (Array.isArray(value)) {
+                value.forEach((item: string) => {
+                  queryParams.append(key, item);
+                });
+              } else {
+                queryParams.append(key, value.toString());
+              }
+            }
+          }
+          
+          const queryString = queryParams.toString();
+          if (queryString) {
+            url += `?${queryString}`;
+          }
+        }
+        
+        const response = await $fetch(url, {
+          method: 'GET'
+        });
+        
+        this.userCards = response.cards || [];
+        return this.userCards;
+      } catch (err: any) {
+        console.error('Error fetching cards by username:', err);
+        this.error = err.message || 'Failed to fetch cards';
+        return [];
+      } finally {
+        this.loading = false;
+      }
+    },
+    
     async searchUserCards(userId: string, searchParams: Record<string, any>) {
       const authStore = useAuthStore();
       const config = useRuntimeConfig();

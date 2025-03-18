@@ -33,7 +33,7 @@
           <div class="flex space-x-3 mt-4">
             <button 
               class="bg-blue-600 hover:bg-blue-700 text-white py-1 px-3 rounded flex items-center"
-              @click="() => {}"
+              @click="selectedUserName = user.username"
             >
               <span class="mr-1">View Cards</span>
             </button>
@@ -47,20 +47,50 @@
           </div>
         </div>
       </div>
+
+
+      <div class="mb-6 flex justify-between items-center">
+        <h2 class="text-2xl font-bold">User's Cards</h2>
+        <div  class="text-gray-600">Loading...</div>
+      </div>
+      
+      <UserCardsList :userName="selectedUserName" />
     </div>
   </template>
   
   <script setup lang="ts">
-  import { onMounted } from 'vue';
+  import { storeToRefs } from 'pinia';
+  import { useAuthStore } from '~/stores/auth';
+  import { onMounted, watch } from 'vue';
   import { useUserStore } from '~/stores/user';
   
   const userStore = useUserStore();
   
+  const selectedUserName = ref('');
+
   const fetchUsernames = async () => {
     await userStore.fetchAllUsernames();
   };
   
+  watch(selectedUserName, () => {
+    console.log(selectedUserName.value);
+  });
   onMounted(() => {
     fetchUsernames();
+  });
+
+
+
+
+
+  definePageMeta({
+    middleware: ['auth']
+  });
+  
+  const authStore = useAuthStore();
+  const { isAuthenticated, user, loading } = storeToRefs(authStore);
+  
+  onMounted(async () => {
+    await authStore.initAuth();
   });
   </script>

@@ -34,6 +34,10 @@ const props = defineProps({
   userId: {
     type: String,
     required: true
+  },
+  userIsAdmin: {
+    type: Boolean,
+    require: false
   }
 });
 
