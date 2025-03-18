@@ -7,6 +7,7 @@ interface User {
   firstName: string;
   lastName: string;
   picture?: string;
+  username?: string;  // Added username field
   role?: string;
   createdAt?: string;
 }
@@ -91,6 +92,13 @@ export const useAuthStore = defineStore('auth', {
       this.user = null;
       if (process.client) {
         localStorage.removeItem('token');
+      }
+    },
+    
+    // Method to update user data locally after changes (like username update)
+    updateUserData(userData: Partial<User>): void {
+      if (this.user) {
+        this.user = { ...this.user, ...userData };
       }
     }
   }

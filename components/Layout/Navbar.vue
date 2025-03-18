@@ -6,6 +6,12 @@
       
       <div class="flex space-x-4 items-center">
         <NuxtLink 
+          to="/players" 
+          class="hover:text-blue-300"
+        >
+          Players
+        </NuxtLink>
+        <NuxtLink 
           v-if="isAuthenticated" 
           to="/profile" 
           class="hover:text-blue-300"
