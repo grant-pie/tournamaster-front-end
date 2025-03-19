@@ -10,12 +10,15 @@
           :alt="card.cardDetails.name"
           class="w-40"
         />
+        <div class="text-sm">
+          <p v-if="card.cardDetails.manaCost">Mana Cost: {{ card.cardDetails.manaCost }}</p>
+          <p v-if="card.cardDetails.rarity">Rarity: {{ card.cardDetails.rarity }}</p>
+          <p v-if="card.createdAt">Received: {{ formattedCreatedAt }}</p>
+        </div>
       </div>
       <div class="mt-2 text-sm">
-        <p v-if="card.cardDetails.manaCost">Mana Cost: {{ card.cardDetails.manaCost }}</p>
-        <p v-if="card.cardDetails.rarity">Rarity: {{ card.cardDetails.rarity }}</p>
-        <p v-if="card.cardDetails.set">Set: {{ card.cardDetails.setName }} ({{ card.cardDetails.set }})</p>
-        <p v-if="card.createdAt">Received: {{ formattedCreatedAt }}</p>
+        <p>{{ card.cardDetails.text }}</p>
+      
       </div>
     </div>
     <div>
