@@ -26,6 +26,82 @@
     </div>
     
     <div v-else class="mt-8">
+
+      <!--deck overview-->
+      <div class="flex justify-between">
+        <h2 class="text-2xl font-bold">Deck Overview</h2>
+        <button 
+          id="copyDeckListBtn"
+          @click="copyDeckList()" 
+          class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
+          >
+            Copy Decklist
+          </button>
+      </div>
+      <div class="flex mb-6 mt-5 bg-white shadow rounded p-4">
+
+        <div>
+          <div id="deck-overview-lands">
+
+            <strong>Lands ({{ landCount }})</strong>
+
+            <br>
+
+          </div>
+
+          <div id="deck-overview-artifacts" class="mt-4">
+
+            <strong>Artifacts ({{ artifactCount }})</strong>
+
+            <br>
+
+          </div>
+        </div>
+ 
+
+        <div class="ml-6">
+
+          <div id="deck-overview-enchantments">
+
+            <strong>Enchantments ({{ enchantmentCount }})</strong>
+
+            <br>
+
+          </div>
+
+          <div id="deck-overview-instants" class="mt-4">
+
+            <strong>Instants  ({{ instantCount }})</strong>
+
+            <br>
+
+          </div>
+
+        </div>
+
+        <div class="ml-6">
+
+          <div id="deck-overview-sorceries">
+
+            <strong>Sorceries  ({{ sorceryCount }})</strong>
+
+            <br>
+
+          </div>
+
+          <div id="deck-overview-creatures"  class="mt-4">
+
+            <strong>Creatures  ({{ creatureCount }})</strong>
+
+            <br>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- end deck overview -->
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold">Cards in this Deck</h2>
         <button 
@@ -300,6 +376,14 @@ const authStore = useAuthStore();
 const deckStore = useDeckStore();
 const cardStore = useCardStore();
 
+const landCount = ref(0);
+const artifactCount = ref(0);
+const enchantmentCount = ref(0);
+const sorceryCount = ref(0);
+const instantCount = ref(0);
+const creatureCount = ref(0);
+
+
 const { isAuthenticated, user } = storeToRefs(authStore);
 const showAddCardModal = ref(false);
 
@@ -512,9 +596,98 @@ watch(availableCards, () => {
   });
 });
 
+function copyDeckList() {
+  let deckList = '';
+  for (const card of deck.value.userCards){
+    deckList += card.card.name += '\n';
+  }
+
+  navigator.clipboard.writeText(deckList);
+
+  document.getElementById('copyDeckListBtn').innerText = 'Copied!';
+
+  setTimeout(() => {
+    document.getElementById('copyDeckListBtn').innerText = 'Copy Decklist';
+  }, 2000);
+};
+
 // Fetch data on component mount
 onMounted(async () => {
   await authStore.initAuth();
   await fetchData();
+
+  const cardCount = [];
+  for (const card of deck.value.userCards) {
+    
+    
+    if(!cardCount.some(obj => obj.name === card.card.name)){
+      cardCount.push({
+        name: card.card.name,
+        type: card.card.type,
+        count: 1
+      });
+    } else {
+      const foundObject = cardCount.find(obj => obj.name === card.card.name);
+      foundObject.count++
+    }
+
+  }
+
+  for(const card of cardCount) {
+    const textnode = document.createTextNode(`${card.name} (${card.count})`);
+    const breakNode = document.createElement("br")
+    if(card.type.includes("Land")){
+
+      landCount.value += card.count;
+
+      document.getElementById("deck-overview-lands").appendChild(textnode);
+      document.getElementById("deck-overview-lands").appendChild(breakNode);
+    }
+
+    if(card.type.includes("Artifact")){
+
+      artifactCount.value += card.count;
+
+      document.getElementById("deck-overview-artifacts").appendChild(textnode);
+      document.getElementById("deck-overview-artifacts").appendChild(breakNode);
+
+    }
+
+    if(card.type.includes("Enchantment")){
+
+      enchantmentCount.value += card.count;
+
+      document.getElementById("deck-overview-enchantments").appendChild(textnode);
+      document.getElementById("deck-overview-enchantments").appendChild(breakNode);
+
+    }
+
+    if(card.type.includes("Instant")){
+
+      instantCount.value += card.count;
+
+      document.getElementById("deck-overview-instants").appendChild(textnode);
+      document.getElementById("deck-overview-instants").appendChild(breakNode);
+
+    }
+
+    if(card.type.includes("Sorcery")){
+
+      sorceryCount.value += card.count;
+
+      document.getElementById("deck-overview-sorceries").appendChild(textnode);
+      document.getElementById("deck-overview-sorceries").appendChild(breakNode);
+
+    }
+
+    if(card.type.includes("Creature")){
+
+      creatureCount.value += card.count;
+
+      document.getElementById("deck-overview-creatures").appendChild(textnode);
+      document.getElementById("deck-overview-creatures").appendChild(breakNode);
+
+    }
+  }
 });
 </script>
