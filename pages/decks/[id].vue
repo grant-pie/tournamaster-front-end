@@ -36,11 +36,80 @@
         </button>
       </div>
       
-      <!-- Cards in the deck -->
-      <div v-if="deck.userCards && deck.userCards.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div v-for="card in deck.userCards" :key="card.id" class="bg-white shadow rounded p-4 flex justify-between">
+      <!-- Search bar -->
+      <div class="mb-6 bg-white shadow rounded p-4">
+        <div class="mb-4">
+          <label class="block text-gray-700 mb-2" for="search">Search Cards</label>
+          <input 
+            id="search" 
+            v-model="searchQuery" 
+            type="text" 
+            placeholder="Search by card name..."
+            class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <h3 class="font-bold">{{ card.card.name}}</h3>
+            <label class="block text-gray-700 mb-2" for="type">Type</label>
+            <select 
+              id="type" 
+              v-model="selectedType" 
+              class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Types</option>
+              <option v-for="type in availableTypes" :key="type" :value="type">{{ type }}</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 mb-2" for="rarity">Rarity</label>
+            <select 
+              id="rarity" 
+              v-model="selectedRarity" 
+              class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Rarities</option>
+              <option v-for="rarity in availableRarities" :key="rarity" :value="rarity">{{ rarity }}</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 mb-2" for="color">Color</label>
+            <select 
+              id="color" 
+              v-model="selectedColor" 
+              class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Colors</option>
+              <option v-for="color in availableColors" :key="color.code" :value="color.code">{{ color.name }}</option>
+            </select>
+          </div>
+          
+          <div class="flex items-end">
+            <button 
+              @click="resetFilters" 
+              class="w-full px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Cards in the deck -->
+      <div v-if="filteredCards.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-for="card in filteredCards" :key="card.id" class="bg-white shadow rounded p-4 flex justify-between">
+          <div>
+            <h3 class="font-bold">{{ card.card.name }}</h3>
+            <p class="text-sm text-gray-600">{{ card.card.type }} • {{ card.card.rarity }}</p>
+            <div class="flex space-x-1 mt-1">
+              <span v-for="(color, index) in card.card.colors" :key="index" 
+                class="w-5 h-5 rounded-full" 
+                :class="getColorClass(color)"
+                :title="getColorName(color)">
+              </span>
+            </div>
             <div class="mt-2">
               <img 
                 :src="`${card.card.imageUrl}`" 
@@ -56,6 +125,16 @@
             Remove
           </button>
         </div>
+      </div>
+      
+      <div v-else-if="deck.userCards && deck.userCards.length > 0" class="text-center py-10 bg-gray-50 rounded">
+        <p class="text-gray-600">No cards match your search criteria.</p>
+        <button 
+          @click="resetFilters" 
+          class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+        >
+          Reset Filters
+        </button>
       </div>
       
       <div v-else class="text-center py-10 bg-gray-50 rounded">
@@ -74,8 +153,65 @@
       <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl h-3/4 flex flex-col">
         <h3 class="text-xl font-bold mb-4">Add Cards to Deck</h3>
         
-        <div class="mb-4">
-          <p class="text-gray-600">Select from your card collection:</p>
+        <!-- Modal Search Bar -->
+        <div class="mb-4 bg-gray-50 p-4 rounded">
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2" for="modal-search">Search Collection</label>
+            <input 
+              id="modal-search" 
+              v-model="modalSearchQuery" 
+              type="text" 
+              placeholder="Search by card name..."
+              class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-gray-700 mb-2" for="modal-type">Type</label>
+              <select 
+                id="modal-type" 
+                v-model="modalSelectedType" 
+                class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Types</option>
+                <option v-for="type in modalAvailableTypes" :key="type" :value="type">{{ type }}</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-gray-700 mb-2" for="modal-rarity">Rarity</label>
+              <select 
+                id="modal-rarity" 
+                v-model="modalSelectedRarity" 
+                class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Rarities</option>
+                <option v-for="rarity in modalAvailableRarities" :key="rarity" :value="rarity">{{ rarity }}</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-gray-700 mb-2" for="modal-color">Color</label>
+              <select 
+                id="modal-color" 
+                v-model="modalSelectedColor" 
+                class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Colors</option>
+                <option v-for="color in availableColors" :key="color.code" :value="color.code">{{ color.name }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="mt-3 flex justify-end">
+            <button 
+              @click="resetModalFilters" 
+              class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+            >
+              Reset Filters
+            </button>
+          </div>
         </div>
         
         <div class="flex-grow overflow-y-auto">
@@ -91,10 +227,28 @@
             <p>You don't have any cards to add.</p>
           </div>
           
+          <div v-else-if="filteredAvailableCards.length === 0" class="text-center py-4">
+            <p>No cards match your search criteria.</p>
+            <button 
+              @click="resetModalFilters" 
+              class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+            >
+              Reset Filters
+            </button>
+          </div>
+          
           <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="card in availableCards" :key="card.id" class="bg-white border rounded p-4 flex justify-between">
+            <div v-for="card in filteredAvailableCards" :key="card.id" class="bg-white border rounded p-4 flex justify-between">
               <div>
                 <h3 class="font-bold">{{ card.cardDetails.name }}</h3>
+                <p class="text-sm text-gray-600">{{ card.cardDetails.type }} • {{ card.cardDetails.rarity }}</p>
+                <div class="flex space-x-1 mt-1">
+                  <span v-for="(color, index) in card.cardDetails.colors" :key="index" 
+                    class="w-5 h-5 rounded-full" 
+                    :class="getColorClass(color)"
+                    :title="getColorName(color)">
+                  </span>
+                </div>
                 <div class="mt-2">
                   <img 
                     :src="`${card.cardDetails.imageUrl}`" 
@@ -149,9 +303,84 @@ const cardStore = useCardStore();
 const { isAuthenticated, user } = storeToRefs(authStore);
 const showAddCardModal = ref(false);
 
+// Search and filter states for deck cards
+const searchQuery = ref('');
+const selectedType = ref('');
+const selectedRarity = ref('');
+const selectedColor = ref('');
+
+// Search and filter states for modal (available cards)
+const modalSearchQuery = ref('');
+const modalSelectedType = ref('');
+const modalSelectedRarity = ref('');
+const modalSelectedColor = ref('');
+
 // Get deck details
 const deckId = computed(() => route.params.id);
 const deck = computed(() => deckStore.currentDeck);
+
+// Color mapping
+const colorMap = [
+  { code: 'W', name: 'White', class: 'bg-yellow-100 border border-yellow-400' },
+  { code: 'U', name: 'Blue', class: 'bg-blue-500' },
+  { code: 'B', name: 'Black', class: 'bg-gray-800' },
+  { code: 'R', name: 'Red', class: 'bg-red-600' },
+  { code: 'G', name: 'Green', class: 'bg-green-600' }
+];
+
+// Get filter options from cards in deck
+const availableTypes = computed(() => {
+  if (!deck.value || !deck.value.userCards) return [];
+  const types = deck.value.userCards.map(card => card.card.type.split(' ')[0]); // Get primary type
+  return [...new Set(types)].sort();
+});
+
+const availableRarities = computed(() => {
+  if (!deck.value || !deck.value.userCards) return [];
+  const rarities = deck.value.userCards.map(card => card.card.rarity);
+  return [...new Set(rarities)].sort();
+});
+
+const availableColors = computed(() => {
+  return colorMap;
+});
+
+// Get filter options from available cards (for modal)
+const modalAvailableTypes = computed(() => {
+  if (!availableCards.value) return [];
+  const types = availableCards.value.map(card => {
+    const typeParts = card.cardDetails.type.split(' ');
+    return typeParts[0]; // Get primary type
+  });
+  return [...new Set(types)].sort();
+});
+
+const modalAvailableRarities = computed(() => {
+  if (!availableCards.value) return [];
+  const rarities = availableCards.value.map(card => card.cardDetails.rarity);
+  return [...new Set(rarities)].sort();
+});
+
+// Filter cards in deck based on search and filters
+const filteredCards = computed(() => {
+  if (!deck.value || !deck.value.userCards) return [];
+  
+  return deck.value.userCards.filter(card => {
+    // Filter by search query
+    const nameMatch = card.card.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+    
+    // Filter by type
+    const typeMatch = !selectedType.value || card.card.type.toLowerCase().includes(selectedType.value.toLowerCase());
+    
+    // Filter by rarity
+    const rarityMatch = !selectedRarity.value || card.card.rarity.toLowerCase() === selectedRarity.value.toLowerCase();
+    
+    // Filter by color
+    const colorMatch = !selectedColor.value || (card.card.colors && card.card.colors.includes(selectedColor.value));
+    
+    return nameMatch && typeMatch && rarityMatch && colorMatch;
+  });
+});
 
 // Get available cards (user's cards not already in deck)
 const availableCards = computed(() => {
@@ -167,16 +396,27 @@ const availableCards = computed(() => {
   const deckCardIds = deck.value.userCards.map(card => card.id);
 
   return allCards.filter(card => !deckCardIds.includes(card.id));
-
 });
 
-watch(availableCards, () => {
-  console.log({
-    deck: deck.value,
-    cards_in_deck: deck.value.userCards.map(card => card.id),
-    all_cards: cardStore.userCards
+// Filter available cards based on modal search and filters
+const filteredAvailableCards = computed(() => {
+  if (!availableCards.value) return [];
+  
+  return availableCards.value.filter(card => {
+    // Filter by search query
+    const nameMatch = card.cardDetails.name.toLowerCase().includes(modalSearchQuery.value.toLowerCase());
+    
+    // Filter by type
+    const typeMatch = !modalSelectedType.value || card.cardDetails.type.toLowerCase().includes(modalSelectedType.value.toLowerCase());
+    
+    // Filter by rarity
+    const rarityMatch = !modalSelectedRarity.value || card.cardDetails.rarity.toLowerCase() === modalSelectedRarity.value.toLowerCase();
+    
+    // Filter by color
+    const colorMatch = !modalSelectedColor.value || (card.cardDetails.colors && card.cardDetails.colors.includes(modalSelectedColor.value));
+    
+    return nameMatch && typeMatch && rarityMatch && colorMatch;
   });
-
 });
 
 // Methods
@@ -218,6 +458,59 @@ const removeCardFromDeck = async (userCardId) => {
     }
   }
 };
+
+const resetFilters = () => {
+  searchQuery.value = '';
+  selectedType.value = '';
+  selectedRarity.value = '';
+  selectedColor.value = '';
+};
+
+const resetModalFilters = () => {
+  modalSearchQuery.value = '';
+  modalSelectedType.value = '';
+  modalSelectedRarity.value = '';
+  modalSelectedColor.value = '';
+};
+
+const getColorClass = (colorCode) => {
+  const color = colorMap.find(c => c.code === colorCode);
+  return color ? color.class : 'bg-gray-300';
+};
+
+const getColorName = (colorCode) => {
+  const color = colorMap.find(c => c.code === colorCode);
+  return color ? color.name : 'Unknown';
+};
+
+// Watch for search/filter changes for debugging
+watch([searchQuery, selectedType, selectedRarity, selectedColor], () => {
+  console.log({
+    query: searchQuery.value,
+    type: selectedType.value,
+    rarity: selectedRarity.value,
+    color: selectedColor.value,
+    filteredCount: filteredCards.value.length
+  });
+});
+
+watch([modalSearchQuery, modalSelectedType, modalSelectedRarity, modalSelectedColor], () => {
+  console.log({
+    modalQuery: modalSearchQuery.value,
+    modalType: modalSelectedType.value,
+    modalRarity: modalSelectedRarity.value,
+    modalColor: modalSelectedColor.value,
+    filteredModalCount: filteredAvailableCards.value.length
+  });
+});
+
+watch(availableCards, () => {
+  console.log({
+    deck: deck.value,
+    cards_in_deck: deck.value.userCards.map(card => card.id),
+    all_cards: cardStore.userCards
+  });
+});
 
 // Fetch data on component mount
 onMounted(async () => {
