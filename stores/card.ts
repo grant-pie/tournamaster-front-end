@@ -4,7 +4,7 @@ import { useAuthStore } from './auth';
 
 interface Card {
   id: string;
-  multiverseId: string;
+  scryfallId: string;
   name: string;
   manaCost?: string;
   convertedManaCost?: number;
@@ -152,7 +152,7 @@ export const useCardStore = defineStore('card', {
       }
     },
     
-    async addCardToUser(userId: string, multiverseId: string) {
+    async addCardToUser(userId: string, scryfallId: string) {
       const authStore = useAuthStore();
       const config = useRuntimeConfig();
       if (!authStore.isAdmin) return;
@@ -161,17 +161,18 @@ export const useCardStore = defineStore('card', {
         this.loading = true;
         this.error = null;
         
-        await $fetch(`${config.public.apiBaseUrl}/user-cards/${userId}`, {
+        const userCard = await $fetch(`${config.public.apiBaseUrl}/user-cards/${userId}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authStore.token}`,
             'Content-Type': 'application/json'
           },
-          body: { multiverseId }
+          body: { scryfallId }
         });
         
         // Refresh the cards list
         await this.fetchUserCards(userId);
+        return userCard;
       } catch (err: any) {
         console.error('Error adding card:', err);
         this.error = err.message || 'Failed to add card';
@@ -240,13 +241,13 @@ export const useCardStore = defineStore('card', {
       }
     },
     
-    async fetchCardDetails(multiverseId: string) {
+    async fetchCardDetails(scryfallId: string) {
       const authStore = useAuthStore();
       const config = useRuntimeConfig();
       if (!authStore.token) return null;
       
       try {
-        const response = await $fetch(`${config.public.apiBaseUrl}/cards/multiverse/${multiverseId}`, {
+        const response = await $fetch(`${config.public.apiBaseUrl}/cards/multiverse/${scryfallId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authStore.token}`

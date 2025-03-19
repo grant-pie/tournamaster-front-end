@@ -31,12 +31,12 @@
           </button>
           
           <button 
-            v-if="parsedCards.length > 0 && !allCardsHaveMultiverseId"
-            @click="fetchMultiverseIds"
+            v-if="parsedCards.length > 0 && !allCardsHaveScryfallId"
+            @click="fetchScryfallIds"
             class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
-            :disabled="fetchingIds || allCardsHaveMultiverseId"
+            :disabled="fetchingIds || allCardsHaveScryfallId"
           >
-            {{ fetchingIds ? `Fetching IDs (${fetchProgress}/${parsedCards.length})` : 'Fetch Multiverse IDs' }}
+            {{ fetchingIds ? `Fetching IDs (${fetchProgress}/${parsedCards.length})` : 'Fetch Scryfall IDs' }}
           </button>
         </div>
         
@@ -54,7 +54,7 @@
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Card Name</th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Set</th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Multiverse ID</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scryfall ID</th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -64,20 +64,20 @@
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ card.set }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ card.qty }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span v-if="card.multiverseId">{{ card.multiverseId }}</span>
-                    <span v-else-if="card.multiverseIdError" class="text-red-500">Error: {{ card.multiverseIdError }}</span>
+                    <span v-if="card.scryfallId">{{ card.scryfallId }}</span>
+                    <span v-else-if="card.scryfallIdError" class="text-red-500">Error: {{ card.scryfallIdError }}</span>
                     <span v-else>-</span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <button 
-                      v-if="card.multiverseId"
+                      v-if="card.scryfallId"
                       @click="addCardToUser(card)"
                       class="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm"
                       :disabled="card.adding"
                     >
                       {{ card.adding ? 'Adding...' : card.qty > 1 ? 'Add Cards' : 'Add Card' }}
                     </button>
-                    <span v-else-if="!card.multiverseId" class="text-gray-400">Need ID</span>
+                    <span v-else-if="!card.scryfallId" class="text-gray-400">Need ID</span>
                   </td>
                 </tr>
               </tbody>
@@ -107,8 +107,8 @@
     name: string;
     set: string;
     qty: number;
-    multiverseId?: string;
-    multiverseIdError?: string;
+    scryfallId?: string;
+    scryfallIdError?: string;
     adding?: boolean;
   }
   
@@ -120,9 +120,9 @@
   const fetchProgress = ref(0);
   const error = ref<string | null>(null);
   
-  const allCardsHaveMultiverseId = computed(() => {
+  const allCardsHaveScryfallId = computed(() => {
     return parsedCards.value.length > 0 && 
-           parsedCards.value.every(card => card.multiverseId || card.multiverseIdError);
+           parsedCards.value.every(card => card.scryfallId || card.scryfallIdError);
   });
   
   const parseCardList = () => {
@@ -162,7 +162,7 @@
     }
   };
   
-  const fetchMultiverseIds = async () => {
+  const fetchScryfallIds = async () => {
     if (fetchingIds.value) return;
     
     fetchingIds.value = true;
@@ -175,7 +175,7 @@
       for (let i = 0; i < parsedCards.value.length; i++) {
         const card = parsedCards.value[i];
         
-        if (!card.multiverseId && !card.multiverseIdError) {
+        if (!card.scryfallId && !card.scryfallIdError) {
           try {
             // Replace spaces with %20 for the API call
             const encodedName = encodeURIComponent(card.name);
@@ -187,14 +187,14 @@
             
             const data = await response.json();
             
-            if (data.multiverse_ids && data.multiverse_ids.length > 0) {
-              card.multiverseId = data.multiverse_ids[0].toString();
+            if (data.id) {
+              card.scryfallId = data.id.toString();
             } else {
-              card.multiverseIdError = "No multiverse ID available";
+              card.scryfallIdError = "No scryfall ID available";
             }
           } catch (err: any) {
-            console.error(`Error fetching multiverse ID for ${card.name}:`, err);
-            card.multiverseIdError = err.message || "Failed to fetch ID";
+            console.error(`Error fetching scryfall ID for ${card.name}:`, err);
+            card.scryfallIdError = err.message || "Failed to fetch ID";
           }
           
           fetchProgress.value = i + 1;
@@ -212,7 +212,7 @@
   };
   
   const addCardToUser = async (card: ParsedCard) => {
-    if (!card.multiverseId) {
+    if (!card.scryfallId) {
       error.value = "Card doesn't have a multiverse ID and can't be added.";
       return;
     }
@@ -222,7 +222,7 @@
     try {
       // If quantity is greater than 1, we need to add the card multiple times
       for (let i = 0; i < card.qty; i++) {
-        await cardStore.addCardToUser(props.userId, card.multiverseId);
+        await cardStore.addCardToUser(props.userId, card.scryfallId);
         
         // Small delay between requests if adding multiple copies
         if (card.qty > 1 && i < card.qty - 1) {

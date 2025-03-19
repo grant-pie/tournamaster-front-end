@@ -51,11 +51,11 @@
           <h2 class="text-2xl font-bold mb-4">Add Card to User</h2>
           <form @submit.prevent="addCard">
             <div class="mb-4">
-              <label for="multiverseId" class="block text-gray-700 mb-2">Card Multiverse ID</label>
+              <label for="scryfallId" class="block text-gray-700 mb-2">Card Scryfall ID</label>
               <input 
                 v-model="newCardId"
                 type="text" 
-                id="multiverseId" 
+                id="scryfallId" 
                 class="w-full p-2 border rounded"
                 placeholder="Enter card's multiverse ID"
                 required

@@ -260,7 +260,8 @@
     creatingDeck.value = true;
     error.value = null;
     success.value = null;
-    
+    const userAddedCards = [];
+    let userAddedCard = {};
     try {
       // 1. First, add all cards to the user's collection
       for (const card of parsedCards.value) {
@@ -268,7 +269,8 @@
           try {
             // For each card, add it to the user's collection according to its quantity
             for (let i = 0; i < card.qty; i++) {
-              await cardStore.addCardToUser(props.userId, card.multiverseId);
+              userAddedCard = await cardStore.addCardToUser(props.userId, card.multiverseId);
+              userAddedCards.push(userAddedCard);
             }
             card.added = true;
           } catch (err: any) {
@@ -276,6 +278,10 @@
             card.multiverseIdError = err.message || "Failed to add to collection";
           }
         }
+
+        console.log({
+          userAddedCards
+        });
       }
       
       // 2. Create a new deck
@@ -290,7 +296,8 @@
           try {
             // For each card, add it to the deck according to its quantity
             for (let i = 0; i < card.qty; i++) {
-              await deckStore.addCardToDeckForUser(newDeck.id, card.multiverseId, props.userId);
+              //addUserCardToDeck(deckId: string, userCardId: string)
+              await deckStore.addUserCardToDeck(newDeck.id, card.id);
             }
             card.addedToDeck = true;
           } catch (err: any) {
