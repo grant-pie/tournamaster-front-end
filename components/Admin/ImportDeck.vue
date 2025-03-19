@@ -43,16 +43,16 @@
           </button>
           
           <button 
-            v-if="parsedCards.length > 0 && !allCardsHaveMultiverseId"
-            @click="fetchMultiverseIds"
+            v-if="parsedCards.length > 0 && !allCardsHaveScryfallId"
+            @click="fetchScryfallIds"
             class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
-            :disabled="fetchingIds || allCardsHaveMultiverseId"
+            :disabled="fetchingIds || allCardsHaveScryfallId"
           >
-            {{ fetchingIds ? `Fetching IDs (${fetchProgress}/${parsedCards.length})` : 'Fetch Multiverse IDs' }}
+            {{ fetchingIds ? `Fetching IDs (${fetchProgress}/${parsedCards.length})` : 'Fetch Scryfall IDs' }}
           </button>
           
           <button 
-            v-if="parsedCards.length > 0 && allCardsHaveMultiverseId && !errorInCards"
+            v-if="parsedCards.length > 0 && allCardsHaveScryfallId && !errorInCards"
             @click="createDeckWithCards"
             class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
             :disabled="creatingDeck"
@@ -79,7 +79,7 @@
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Card Name</th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Multiverse ID</th>
+                  <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scryfall ID</th>
                   <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
@@ -89,15 +89,15 @@
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ card.category }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ card.qty }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span v-if="card.multiverseId">{{ card.multiverseId }}</span>
-                    <span v-else-if="card.multiverseIdError" class="text-red-500">Error: {{ card.multiverseIdError }}</span>
+                    <span v-if="card.scryfallId">{{ card.scryfallId }}</span>
+                    <span v-else-if="card.scryfallIdError" class="text-red-500">Error: {{ card.scryfallIdError }}</span>
                     <span v-else>-</span>
                   </td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <span v-if="card.added && card.addedToDeck" class="text-green-500">Added to Collection & Deck</span>
                     <span v-else-if="card.added" class="text-green-500">Added to Collection</span>
-                    <span v-else-if="card.multiverseIdError" class="text-red-500">Error</span>
-                    <span v-else-if="card.multiverseId">Ready</span>
+                    <span v-else-if="card.scryfallIdError" class="text-red-500">Error</span>
+                    <span v-else-if="card.scryfallId">Ready</span>
                     <span v-else class="text-gray-400">Pending</span>
                   </td>
                 </tr>
@@ -130,8 +130,8 @@
     name: string;
     category: string;
     qty: number;
-    multiverseId?: string;
-    multiverseIdError?: string;
+    scryfallId?: string;
+    scryfallIdError?: string;
     added?: boolean;
     addedToDeck?: boolean;
   }
@@ -147,15 +147,29 @@
   const success = ref<string | null>(null);
   const creatingDeck = ref(false);
   
-  const allCardsHaveMultiverseId = computed(() => {
+  const allCardsHaveScryfallId = computed(() => {
     return parsedCards.value.length > 0 && 
-           parsedCards.value.every(card => card.multiverseId || card.multiverseIdError);
+           parsedCards.value.every(card => card.scryfallId || card.scryfallIdError);
   });
   
   const errorInCards = computed(() => {
-    return parsedCards.value.some(card => card.multiverseIdError);
+    return parsedCards.value.some(card => card.scryfallIdError);
   });
   
+  const getToday = function formatDate(date = new Date()) {
+    // Get year, month, day
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    // Get hours and minutes
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    // Return formatted string
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
   const parseDeckList = () => {
     if (!deckListText.value || !deckName.value || loading.value) return;
     
@@ -205,7 +219,7 @@
     }
   };
   
-  const fetchMultiverseIds = async () => {
+  const fetchScryfallIds = async () => {
     if (fetchingIds.value) return;
     
     fetchingIds.value = true;
@@ -218,7 +232,7 @@
       for (let i = 0; i < parsedCards.value.length; i++) {
         const card = parsedCards.value[i];
         
-        if (!card.multiverseId && !card.multiverseIdError) {
+        if (!card.scryfallId && !card.scryfallIdError) {
           try {
             // Replace spaces with %20 for the API call
             const encodedName = encodeURIComponent(card.name);
@@ -230,14 +244,14 @@
             
             const data = await response.json();
             
-            if (data.multiverse_ids && data.multiverse_ids.length > 0) {
-              card.multiverseId = data.multiverse_ids[0].toString();
+            if (data.id) {
+              card.scryfallId = data.id;
             } else {
-              card.multiverseIdError = "No multiverse ID available";
+              card.scryfallIdError = "No scryfall ID available";
             }
           } catch (err: any) {
-            console.error(`Error fetching multiverse ID for ${card.name}:`, err);
-            card.multiverseIdError = err.message || "Failed to fetch ID";
+            console.error(`Error fetching scryfall ID for ${card.name}:`, err);
+            card.scryfallIdError = err.message || "Failed to fetch ID";
           }
           
           fetchProgress.value = i + 1;
@@ -260,50 +274,46 @@
     creatingDeck.value = true;
     error.value = null;
     success.value = null;
+
     const userAddedCards = [];
-    let userAddedCard = {};
     try {
       // 1. First, add all cards to the user's collection
       for (const card of parsedCards.value) {
-        if (card.multiverseId) {
+        if (card.scryfallId) {
           try {
             // For each card, add it to the user's collection according to its quantity
             for (let i = 0; i < card.qty; i++) {
-              userAddedCard = await cardStore.addCardToUser(props.userId, card.multiverseId);
+              const userAddedCard = await cardStore.addCardToUser(props.userId, card.scryfallId) || {};
               userAddedCards.push(userAddedCard);
             }
             card.added = true;
           } catch (err: any) {
             console.error(`Error adding card ${card.name} to user's collection:`, err);
-            card.multiverseIdError = err.message || "Failed to add to collection";
+            card.scryfallIdError = err.message || "Failed to add to collection";
           }
         }
-
-        console.log({
-          userAddedCards
-        });
+ 
+    
       }
-      
+
+   
       // 2. Create a new deck
       const newDeck = await deckStore.createDeckForUser({
         name: deckName.value,
-        description: `Imported deck with ${parsedCards.value.length} cards`
+        description: `Imported on ${getToday()}`
       }, props.userId);
 
       // 3. Add all cards to the deck
-      for (const card of parsedCards.value) {
-        if (card.multiverseId && card.added) {
-          try {
-            // For each card, add it to the deck according to its quantity
-            for (let i = 0; i < card.qty; i++) {
-              //addUserCardToDeck(deckId: string, userCardId: string)
-              await deckStore.addUserCardToDeck(newDeck.id, card.id);
-            }
-            card.addedToDeck = true;
-          } catch (err: any) {
-            console.error(`Error adding card ${card.name} to deck:`, err);
-            card.multiverseIdError = err.message || "Failed to add to deck";
-          }
+      for (const card of userAddedCards) {
+        console.log(card);
+        try {
+          // For each card, add it to the deck according to its quantity
+          console.log('attempting to add card to deck');
+          await deckStore.addUserCardToDeckForUser(props.userId, newDeck.id, card.userCard.id);
+        } catch (err: any) {
+
+          console.error(`Error adding card ${card.name} to deck:`, err);
+          
         }
       }
       

@@ -264,8 +264,9 @@ export const useDeckStore = defineStore('deck', {
         this.loading = false;
       }
     },
-
+    // '/user/:userId/:deckId/user-cards'
     async addUserCardToDeckForUser(userId: string, deckId: string, userCardId: string) {
+      console.log('addUserCardToDeckForUser');
       const authStore = useAuthStore();
       const config = useRuntimeConfig();
       if (!authStore.token) return null;
