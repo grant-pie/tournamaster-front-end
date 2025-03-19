@@ -40,10 +40,10 @@
       <div v-if="deck.userCards && deck.userCards.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div v-for="card in deck.userCards" :key="card.id" class="bg-white shadow rounded p-4 flex justify-between">
           <div>
-            <h3 class="font-bold">Card ID: {{ card.card.multiverseId || (card.cardDetails && card.cardDetails.multiverseId) }}</h3>
+            <h3 class="font-bold">{{ card.card.name}}</h3>
             <div class="mt-2">
               <img 
-                :src="`https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=${card.card.multiverseId || (card.cardDetails && card.cardDetails.multiverseId)}&type=card`" 
+                :src="`${card.card.imageUrl}`" 
                 :alt="`Card ${card.multiverseId || (card.cardDetails && card.cardDetails.multiverseId)}`"
                 class="w-40"
               />
@@ -94,11 +94,11 @@
           <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div v-for="card in availableCards" :key="card.id" class="bg-white border rounded p-4 flex justify-between">
               <div>
-                <h3 class="font-bold">Card ID: {{ card.cardDetails?.multiverseId || card.multiverseId }}</h3>
+                <h3 class="font-bold">{{ card.cardDetails.name }}</h3>
                 <div class="mt-2">
                   <img 
-                    :src="`https://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=${card.cardDetails?.multiverseId || card.multiverseId}&type=card`" 
-                    :alt="`Card ${card.cardDetails?.multiverseId || card.multiverseId}`"
+                    :src="`${card.cardDetails.imageUrl}`" 
+                    :alt="`Card ${card.cardDetails.name}`"
                     class="w-40"
                   />
                 </div>
@@ -152,23 +152,30 @@ const showAddCardModal = ref(false);
 // Get deck details
 const deckId = computed(() => route.params.id);
 const deck = computed(() => deckStore.currentDeck);
-watch(deck, () => {
-  console.log(deck.value)
-});
+
 // Get available cards (user's cards not already in deck)
 const availableCards = computed(() => {
-  if (!deck.value || !deck.value.cards) {
+  if (!deck.value || !deck.value.userCards) {
     return cardStore.userCards || [];
   }
   
   // Get all user cards
   const allCards = cardStore.userCards || [];
-  
+ 
   // Filter out cards already in the deck
   // Make sure we're comparing the right IDs
-  const deckCardIds = deck.value.cards.map(card => card.userCardId || card.id);
-  
+  const deckCardIds = deck.value.userCards.map(card => card.id);
+
   return allCards.filter(card => !deckCardIds.includes(card.id));
+
+});
+
+watch(availableCards, () => {
+  console.log({
+    deck: deck.value,
+    cards_in_deck: deck.value.userCards.map(card => card.id),
+    all_cards: cardStore.userCards
+  });
 
 });
 
