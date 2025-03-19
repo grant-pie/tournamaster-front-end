@@ -5,7 +5,7 @@
         <h3 class="font-bold">{{ deck.name }}</h3>
         <p class="text-gray-600 mt-1">{{ deck.description || 'No description' }}</p>
         <div class="mt-2 text-sm text-gray-500">
-          <p>{{ deck.cards?.length || 0 }} cards</p>
+          <p>{{ deck.userCards?.length || 0 }} cards</p>
         </div>
       </div>
       

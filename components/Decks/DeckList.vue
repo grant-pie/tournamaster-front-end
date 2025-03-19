@@ -49,7 +49,7 @@
   
   // Get decks from the store
   const decks = computed(() => deckStore.userDecks);
-  
+  watch(decks, () => console.log(deck))
   // Fetch decks when the component is mounted
   onMounted(async () => {
     await deckStore.fetchUserDecks(props.userId);
