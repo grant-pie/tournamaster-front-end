@@ -40,64 +40,10 @@
       </div>
       <div class="flex mb-6 mt-5 bg-white shadow rounded p-4">
 
-        <div>
-          <div id="deck-overview-lands">
+        <div id="deckList"
+        v-html="deckListHtml"
+        ></div>
 
-            <strong>Lands ({{ landCount }})</strong>
-
-            <br>
-
-          </div>
-
-          <div id="deck-overview-artifacts" class="mt-4">
-
-            <strong>Artifacts ({{ artifactCount }})</strong>
-
-            <br>
-
-          </div>
-        </div>
- 
-
-        <div class="ml-6">
-
-          <div id="deck-overview-enchantments">
-
-            <strong>Enchantments ({{ enchantmentCount }})</strong>
-
-            <br>
-
-          </div>
-
-          <div id="deck-overview-instants" class="mt-4">
-
-            <strong>Instants  ({{ instantCount }})</strong>
-
-            <br>
-
-          </div>
-
-        </div>
-
-        <div class="ml-6">
-
-          <div id="deck-overview-sorceries">
-
-            <strong>Sorceries  ({{ sorceryCount }})</strong>
-
-            <br>
-
-          </div>
-
-          <div id="deck-overview-creatures"  class="mt-4">
-
-            <strong>Creatures  ({{ creatureCount }})</strong>
-
-            <br>
-
-          </div>
-
-        </div>
 
       </div>
 
@@ -274,14 +220,6 @@ const authStore = useAuthStore();
 const deckStore = useDeckStore();
 const cardStore = useCardStore();
 
-const landCount = ref(0);
-const artifactCount = ref(0);
-const enchantmentCount = ref(0);
-const sorceryCount = ref(0);
-const instantCount = ref(0);
-const creatureCount = ref(0);
-
-
 const { isAuthenticated, user } = storeToRefs(authStore);
 const showAddCardModal = ref(false);
 
@@ -300,6 +238,105 @@ const modalSelectedColor = ref('');
 // Get deck details
 const deckId = computed(() => route.params.id);
 const deck = computed(() => deckStore.currentDeck);
+
+const deckListHtml = computed(() => {
+  let html = ``;
+  let landHtml = ``;
+  let artifactHtml = ``;
+  let enchantmentHtml = ``;
+  let instantHtml = ``;
+  let sorceryHtml = ``;
+  let creatureHtml = ``;
+  let landCount = 0;
+  let artifactCount = 0;
+  let enchantmentCount = 0;
+  let sorceryCount = 0;
+  let instantCount = 0;
+  let creatureCount = 0;
+  let cardCount = [];
+  for (const card of deck.value.userCards) {
+    console.log(card.card.name)
+    
+    if(!cardCount.some(obj => obj.name === card.card.name)){
+      cardCount.push({
+        name: card.card.name,
+        type: card.card.type,
+        count: 1
+      });
+    } else {
+      const foundObject = cardCount.find(obj => obj.name === card.card.name);
+      foundObject.count++
+    }
+
+  }
+
+  for(const card of cardCount) {
+    console.log(card)
+    if(card.type.includes("Land")){
+
+      landCount += card.count;
+      landHtml += `<p>${card.name} (${card.count})</p>`;
+
+    }
+
+    if(card.type.includes("Artifact")){
+
+      artifactCount += card.count;
+      artifactHtml += `<p>${card.name} (${card.count})</p>`;
+
+    }
+
+    if(card.type.includes("Enchantment")){
+
+      enchantmentCount += card.count;
+      enchantmentHtml += `<p>${card.name} (${card.count})</p>`;;
+
+    }
+
+    if(card.type.includes("Instant")){
+
+      instantCount+= card.count;
+      instantHtml += `<p>${card.name} (${card.count})</p>`;
+
+    }
+
+    if(card.type.includes("Sorcery")){
+
+      sorceryCount += card.count;
+      sorceryHtml += `<p>${card.name} (${card.count})</p>`;
+
+    }
+
+    if(card.type.includes("Creature")){
+
+      creatureCount += card.count;
+      creatureHtml += `<p>${card.name} (${card.count})</p>`;
+
+   
+    }
+  
+  }
+
+  html += `<strong> Lands (${landCount}) </strong><br>`;
+  html += landHtml + `<br>`;
+
+  html += `<strong> Artifacts (${artifactCount}) </strong><br>`;
+  html += artifactHtml + `<br>`;
+
+  html += `<strong> Enchantments(${enchantmentCount}) </strong><br>`;
+  html += enchantmentHtml+  `<br>`;
+
+  html += `<strong> Instants (${instantCount}) </strong><br>`;
+  html += instantHtml + `<br>`;
+
+  html += `<strong> Sorcery (${sorceryCount}) </strong><br>`;
+  html += sorceryHtml + `<br>`;
+
+  html += `<strong> Creature (${creatureCount}) </strong><br>`;
+  html += creatureHtml + `<br>`;
+  return html
+});
+
 
 // Color mapping
 const colorMap = [
@@ -523,78 +560,6 @@ onMounted(async () => {
   await authStore.initAuth();
   await fetchData();
 
-  const cardCount = [];
-  for (const card of deck.value.userCards) {
-    
-    
-    if(!cardCount.some(obj => obj.name === card.card.name)){
-      cardCount.push({
-        name: card.card.name,
-        type: card.card.type,
-        count: 1
-      });
-    } else {
-      const foundObject = cardCount.find(obj => obj.name === card.card.name);
-      foundObject.count++
-    }
 
-  }
-
-  for(const card of cardCount) {
-    const textnode = document.createTextNode(`${card.name} (${card.count})`);
-    const breakNode = document.createElement("br")
-    if(card.type.includes("Land")){
-
-      landCount.value += card.count;
-
-      document.getElementById("deck-overview-lands").appendChild(textnode);
-      document.getElementById("deck-overview-lands").appendChild(breakNode);
-    }
-
-    if(card.type.includes("Artifact")){
-
-      artifactCount.value += card.count;
-
-      document.getElementById("deck-overview-artifacts").appendChild(textnode);
-      document.getElementById("deck-overview-artifacts").appendChild(breakNode);
-
-    }
-
-    if(card.type.includes("Enchantment")){
-
-      enchantmentCount.value += card.count;
-
-      document.getElementById("deck-overview-enchantments").appendChild(textnode);
-      document.getElementById("deck-overview-enchantments").appendChild(breakNode);
-
-    }
-
-    if(card.type.includes("Instant")){
-
-      instantCount.value += card.count;
-
-      document.getElementById("deck-overview-instants").appendChild(textnode);
-      document.getElementById("deck-overview-instants").appendChild(breakNode);
-
-    }
-
-    if(card.type.includes("Sorcery")){
-
-      sorceryCount.value += card.count;
-
-      document.getElementById("deck-overview-sorceries").appendChild(textnode);
-      document.getElementById("deck-overview-sorceries").appendChild(breakNode);
-
-    }
-
-    if(card.type.includes("Creature")){
-
-      creatureCount.value += card.count;
-
-      document.getElementById("deck-overview-creatures").appendChild(textnode);
-      document.getElementById("deck-overview-creatures").appendChild(breakNode);
-
-    }
-  }
 });
 </script>
