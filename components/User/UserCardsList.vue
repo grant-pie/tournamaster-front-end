@@ -223,10 +223,12 @@
       
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <CardItem 
-          v-for="card in cards" 
+          v-for="card in filteredCards" 
           :key="card.id" 
           :card="card" 
           :userId="userId"
+          :actions="cardActions"
+          @onClickAction="emitOnClickAction" 
         />
       </div>
       
@@ -317,13 +319,38 @@ const props = defineProps({
   userId: {
     type: String,
     required: false
+  },
+  cardActions:{
+    type: Array,
+    required: false
+  },
+  excludeCards: {
+    type: Array,
+    required: false
   }
 });
+
+const emit = defineEmits(['onClickAction'])
 
 const cardStore = useCardStore();
 const { userCards, loading, error, pagination } = storeToRefs(cardStore);
 const cards = computed(() => userCards.value);
 
+const filteredCards = computed(() => {
+
+  if(!props.excludeCards) {
+    return userCards.value;
+  }
+
+  const allCards = userCards.value || [];
+  
+  // Filter out cards already in the deck
+  // Make sure we're comparing the right IDs
+  const deckCardIds = props.excludeCards.map(card => card.id);
+
+  return allCards.filter(card => !deckCardIds.includes(card.id));
+
+});
 // Search parameters
 const searchParams = ref({
   name: '',
@@ -568,4 +595,8 @@ const resetSearch = async () => {
     });
   }
 };
+
+const emitOnClickAction = (actionAndCardObj) =>{
+  emit('onClickAction', actionAndCardObj)
+}
 </script>

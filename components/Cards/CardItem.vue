@@ -21,13 +21,15 @@
       
       </div>
     </div>
-    <div>
+    <div
+      v-if="actions">
       <button 
-        v-show="userIsAdmin"
-        @click="removeCard" 
+        v-for="action in actions"
+        :key="action"
+        @click="$emit('onClickAction', {action,card})" 
         class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-xs"
       >
-        Remove
+        {{action}}
       </button>
     </div>
   </div>
@@ -45,17 +47,12 @@ const props = defineProps({
     type: String,
     required: false
   },
-  userIsAdmin: {
-    type: Boolean,
+  actions: {
+    type: Array,
     require: false
   }
 });
 
-const cardStore = useCardStore();
-
-const removeCard = () => {
-  cardStore.removeCard(props.card.id, props.userId);
-};
 
 const formattedCreatedAt = computed(() => {
   const date = new Date(props.card.createdAt);

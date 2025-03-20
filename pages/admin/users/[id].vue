@@ -78,7 +78,11 @@
         <!-- User's Cards -->
         <div class="bg-white p-6 rounded shadow-md">
           <h2 class="text-2xl font-bold mb-4">User's Cards</h2>
-          <AdminCardsList :userId="userId" />
+          <UserCardsList 
+          :userId="userId" 
+          :cardActions="['Remove']"
+          @onClickAction="onClickAction"
+          />
         </div>
       </div>
     </div>
@@ -92,7 +96,7 @@ import { storeToRefs } from 'pinia';
 import { useCardStore } from '~/stores/card';
 import { useAuthStore } from '~/stores/auth';
 import Header from '~/components/Layout/Header.vue';
-import AdminCardsList from '~/components/Admin/AdminCardsList.vue';
+import UserCardsList from '~/components/User/UserCardsList.vue';
 import ImportCardsList from '~/components/Admin/ImportCardsList.vue';
 import ImportDeck from '~/components/Admin/ImportDeck.vue';
 import { useRuntimeConfig } from '#app';
@@ -122,6 +126,10 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const user = ref<User | null>(null);
 const newCardId = ref('');
+
+
+
+
 
 // Fetch user data
 const fetchUserData = async () => {
@@ -164,4 +172,18 @@ onMounted(async () => {
     error.value = 'Authentication required';
   }
 });
+
+const removeCard = (cardId: string, userId: string) => {
+
+  cardStore.removeCard(cardId, userId);
+
+};
+
+const onClickAction = (actionAndCardObj: Object) => {
+  console.log(actionAndCardObj)
+
+  if(actionAndCardObj.action === 'Remove'){
+    removeCard(actionAndCardObj.card.id, actionAndCardObj.card.userId);
+  }
+}
 </script>

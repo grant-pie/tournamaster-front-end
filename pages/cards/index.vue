@@ -17,7 +17,8 @@
           <div v-if="loading" class="text-gray-600">Loading...</div>
         </div>
         
-        <UserCardsList :userId="user?.id" />
+        <UserCardsList 
+        :userId="user?.id"/>
       </template>
     </div>
   </div>
