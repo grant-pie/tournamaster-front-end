@@ -211,7 +211,10 @@
     <div v-else>
       <div class="mb-4 flex justify-between items-center">
         <h3 class="text-lg font-medium">Card List</h3>
-        <p class="text-sm text-gray-600">{{ cards.length }} cards found</p>
+        <p class="text-sm text-gray-600">
+          Showing {{ pagination.itemCount }} of {{ pagination.totalItems }} cards
+          (Page {{ pagination.currentPage }} of {{ pagination.totalPages }})
+        </p>
       </div>
       
       <div v-if="cards.length === 0" class="text-center py-10">
@@ -226,6 +229,76 @@
           :userId="userId"
         />
       </div>
+      
+      <!-- Pagination Controls -->
+      <div v-if="pagination.totalPages > 1" class="mt-6 flex justify-center">
+        <nav class="flex items-center space-x-2">
+          <button 
+            @click="goToFirstPage" 
+            :disabled="pagination.currentPage === 1"
+            class="px-3 py-1 rounded border" 
+            :class="pagination.currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'"
+          >
+            &laquo;
+          </button>
+          
+          <button 
+            @click="goToPrevPage" 
+            :disabled="pagination.currentPage === 1"
+            class="px-3 py-1 rounded border" 
+            :class="pagination.currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'"
+          >
+            &lsaquo;
+          </button>
+          
+          <div class="flex space-x-1">
+            <button 
+              v-for="page in displayedPageNumbers" 
+              :key="page" 
+              @click="goToPage(page)"
+              class="px-3 py-1 rounded border" 
+              :class="page === pagination.currentPage ? 'bg-indigo-600 text-white' : 'bg-white hover:bg-gray-50'"
+            >
+              {{ page }}
+            </button>
+          </div>
+          
+          <button 
+            @click="goToNextPage" 
+            :disabled="pagination.currentPage === pagination.totalPages"
+            class="px-3 py-1 rounded border" 
+            :class="pagination.currentPage === pagination.totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'"
+          >
+            &rsaquo;
+          </button>
+          
+          <button 
+            @click="goToLastPage" 
+            :disabled="pagination.currentPage === pagination.totalPages"
+            class="px-3 py-1 rounded border" 
+            :class="pagination.currentPage === pagination.totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-gray-50'"
+          >
+            &raquo;
+          </button>
+        </nav>
+      </div>
+      
+      <!-- Items per page selector -->
+      <!--<div class="mt-4 flex justify-end">
+        <div class="flex items-center space-x-2">
+          <label class="text-sm text-gray-600">Items per page:</label>
+          <select 
+            v-model="itemsPerPage" 
+            @change="changeItemsPerPage"
+            class="rounded border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>-->
     </div>
   </div>
 </template>
@@ -248,7 +321,7 @@ const props = defineProps({
 });
 
 const cardStore = useCardStore();
-const { userCards, loading, error } = storeToRefs(cardStore);
+const { userCards, loading, error, pagination } = storeToRefs(cardStore);
 const cards = computed(() => userCards.value);
 
 // Search parameters
@@ -267,8 +340,13 @@ const searchParams = ref({
   createdAtStart: '',
   createdAtEnd: '',
   orderBy: '',
-  orderDirection: 'ASC'
+  orderDirection: 'ASC',
+  page: 1,
+  limit: 10
 });
+
+// Pagination state
+const itemsPerPage = ref(10);
 
 // Selected colors for checkbox handling
 const selectedColors = ref([]);
@@ -276,8 +354,38 @@ const selectedUsername = computed(() => {
   return props.userName;
 });
 
-watch(selectedUsername, async ()=> {
-  await cardStore.fetchCardsByUsername(props.userName);
+// Calculate displayed page numbers
+const displayedPageNumbers = computed(() => {
+  const totalPages = pagination.value.totalPages;
+  const currentPage = pagination.value.currentPage;
+  const maxPagesToShow = 5;
+  
+  if (totalPages <= maxPagesToShow) {
+    // If we have fewer pages than the max to show, display all pages
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  
+  // Otherwise, show a window around the current page
+  let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+  let endPage = startPage + maxPagesToShow - 1;
+  
+  // Adjust if we're near the end
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - maxPagesToShow + 1);
+  }
+  
+  return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+});
+
+watch(selectedUsername, async () => {
+  if (props.userName) {
+    searchParams.value.page = 1;
+    await cardStore.fetchCardsByUsername(props.userName, { 
+      page: searchParams.value.page, 
+      limit: itemsPerPage.value 
+    });
+  }
 });
 
 // Watch for changes in selectedColors to update searchParams
@@ -310,23 +418,74 @@ const formatDateForApi = (dateString) => {
 
 // Load cards on component mount
 onMounted(async () => {
-  if(props.userId != null && props.userId != '' && props.userId != undefined){
-    await cardStore.fetchUserCards(props.userId);
+  if (props.userId) {
+    await cardStore.fetchUserCards(props.userId, 1, itemsPerPage.value);
   }
 
-  if(props.userName != null && props.userName != '' && props.userName != undefined){
-    await cardStore.fetchCardsByUsername(props.userName);
+  if (props.userName) {
+    await cardStore.fetchCardsByUsername(props.userName, { 
+      page: 1, 
+      limit: itemsPerPage.value 
+    });
   }
 });
 
 // Refetch cards when userId changes
 watch(() => props.userId, async (newUserId) => {
-  resetSearch();
-  await cardStore.fetchUserCards(newUserId);
+  if (newUserId) {
+    resetSearch();
+    await cardStore.fetchUserCards(newUserId, 1, itemsPerPage.value);
+  }
 });
 
-// Search function
-const searchCards = async () => {
+// Pagination methods
+const goToPage = async (page) => {
+  searchParams.value.page = page;
+  await performSearch();
+};
+
+const goToFirstPage = () => {
+  if (pagination.value.currentPage !== 1) {
+    goToPage(1);
+  }
+};
+
+const goToLastPage = () => {
+  if (pagination.value.currentPage !== pagination.value.totalPages) {
+    goToPage(pagination.value.totalPages);
+  }
+};
+
+const goToPrevPage = async () => {
+  if (pagination.value.currentPage > 1) {
+    const prevPageParams = { ...getCleanParams(), username: props.userName };
+    if (props.userId) {
+      await cardStore.prevPage(props.userId, prevPageParams);
+    } else if (props.userName) {
+      await cardStore.prevPage('', prevPageParams);
+    }
+  }
+};
+
+const goToNextPage = async () => {
+  if (pagination.value.currentPage < pagination.value.totalPages) {
+    const nextPageParams = { ...getCleanParams(), username: props.userName };
+    if (props.userId) {
+      await cardStore.nextPage(props.userId, nextPageParams);
+    } else if (props.userName) {
+      await cardStore.nextPage('', nextPageParams);
+    }
+  }
+};
+
+const changeItemsPerPage = async () => {
+  searchParams.value.page = 1;
+  searchParams.value.limit = itemsPerPage.value;
+  await performSearch();
+};
+
+// Helper to get clean parameters
+const getCleanParams = () => {
   // Clean up empty values
   const cleanParams = {};
   for (const [key, value] of Object.entries(searchParams.value)) {
@@ -353,14 +512,28 @@ const searchCards = async () => {
     cleanParams.createdAtEnd = formatDateForApi(cleanParams.createdAtEnd);
   }
   
- 
-  if(props.userId != null && props.userId != '' && props.userId != undefined){
-    await cardStore.searchUserCards(props.userId, cleanParams);
-  }
+  // Add pagination parameters
+  cleanParams.page = searchParams.value.page;
+  cleanParams.limit = itemsPerPage.value;
+  
+  return cleanParams;
+};
 
-  if(props.userName != null && props.userName != '' && props.userName != undefined){
+// Perform search with current parameters
+const performSearch = async () => {
+  const cleanParams = getCleanParams();
+  
+  if (props.userId) {
+    await cardStore.searchUserCards(props.userId, cleanParams);
+  } else if (props.userName) {
     await cardStore.fetchCardsByUsername(props.userName, cleanParams);
   }
+};
+
+// Search function
+const searchCards = async () => {
+  searchParams.value.page = 1;  // Reset to first page when searching
+  await performSearch();
 };
 
 // Reset search and fetch all cards
@@ -380,18 +553,19 @@ const resetSearch = async () => {
     createdAtStart: '',
     createdAtEnd: '',
     orderBy: '',
-    orderDirection: 'ASC'
+    orderDirection: 'ASC',
+    page: 1,
+    limit: itemsPerPage.value
   };
   selectedColors.value = [];
   
-  if(props.userId != null && props.userId != '' && props.userId != undefined){
-    await cardStore.fetchUserCards(props.userId);
+  if (props.userId) {
+    await cardStore.fetchUserCards(props.userId, 1, itemsPerPage.value);
+  } else if (props.userName) {
+    await cardStore.fetchCardsByUsername(props.userName, { 
+      page: 1, 
+      limit: itemsPerPage.value 
+    });
   }
-
-  if(props.userName != null && props.userName != '' && props.userName != undefined){
-    await cardStore.fetchCardsByUsername(props.userName);
-  }
-
-  
 };
 </script>

@@ -28,16 +28,31 @@ interface UserCard {
   createdAt: string;
 }
 
+interface PaginationMeta {
+  totalItems: number;
+  itemCount: number;
+  itemsPerPage: number;
+  totalPages: number;
+  currentPage: number;
+}
+
 export const useCardStore = defineStore('card', {
   state: () => ({
     userCards: [] as UserCard[],
     allCards: [] as Card[],
     loading: false,
     error: null as string | null,
+    pagination: {
+      totalItems: 0,
+      itemCount: 0,
+      itemsPerPage: 10,
+      totalPages: 0,
+      currentPage: 1
+    } as PaginationMeta
   }),
   
   actions: {
-    async fetchUserCards(userId: string) {
+    async fetchUserCards(userId: string, page = 1, limit = 10) {
       const authStore = useAuthStore();
       const config = useRuntimeConfig();
       if (!authStore.token) return;
@@ -50,10 +65,15 @@ export const useCardStore = defineStore('card', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
+          },
+          params: {
+            page,
+            limit
           }
         });
         
         this.userCards = response.cards || [];
+        this.pagination = response.pagination || this.pagination;
       } catch (err: any) {
         console.error('Error fetching user cards:', err);
         this.error = err.message || 'Failed to fetch cards';
@@ -69,29 +89,36 @@ export const useCardStore = defineStore('card', {
         this.loading = true;
         this.error = null;
         
-        let url = `${config.public.apiBaseUrl}/user-cards/username/${username}`;
+        // Set default pagination values if not provided
+        if (!searchParams) {
+          searchParams = {};
+        }
+        if (searchParams.page === undefined) {
+          searchParams.page = 1;
+        }
+        if (searchParams.limit === undefined) {
+          searchParams.limit = 10;
+        }
         
-        // Add search parameters if provided
-        if (searchParams) {
-          // Build query string
-          const queryParams = new URLSearchParams();
-          for (const [key, value] of Object.entries(searchParams)) {
-            if (value !== undefined && value !== null && value !== '') {
-              // Handle array values (like colors)
-              if (Array.isArray(value)) {
-                value.forEach((item: string) => {
-                  queryParams.append(key, item);
-                });
-              } else {
-                queryParams.append(key, value.toString());
-              }
+        // Build query string
+        const queryParams = new URLSearchParams();
+        for (const [key, value] of Object.entries(searchParams)) {
+          if (value !== undefined && value !== null && value !== '') {
+            // Handle array values (like colors)
+            if (Array.isArray(value)) {
+              value.forEach((item: string) => {
+                queryParams.append(key, item);
+              });
+            } else {
+              queryParams.append(key, value.toString());
             }
           }
-          
-          const queryString = queryParams.toString();
-          if (queryString) {
-            url += `?${queryString}`;
-          }
+        }
+        
+        const queryString = queryParams.toString();
+        let url = `${config.public.apiBaseUrl}/user-cards/username/${username}`;
+        if (queryString) {
+          url += `?${queryString}`;
         }
         
         const response = await $fetch(url, {
@@ -99,6 +126,7 @@ export const useCardStore = defineStore('card', {
         });
         
         this.userCards = response.cards || [];
+        this.pagination = response.pagination || this.pagination;
         return this.userCards;
       } catch (err: any) {
         console.error('Error fetching cards by username:', err);
@@ -109,7 +137,7 @@ export const useCardStore = defineStore('card', {
       }
     },
     
-    async searchUserCards(userId: string, searchParams: Record<string, any>) {
+    async searchUserCards(userId: string, searchParams: Record<string, any> = {}) {
       const authStore = useAuthStore();
       const config = useRuntimeConfig();
       if (!authStore.token) return;
@@ -117,6 +145,14 @@ export const useCardStore = defineStore('card', {
       try {
         this.loading = true;
         this.error = null;
+        
+        // Set default pagination values if not provided
+        if (searchParams.page === undefined) {
+          searchParams.page = 1;
+        }
+        if (searchParams.limit === undefined) {
+          searchParams.limit = 10;
+        }
         
         // Build query string
         const queryParams = new URLSearchParams();
@@ -144,11 +180,41 @@ export const useCardStore = defineStore('card', {
         });
         
         this.userCards = response.cards || [];
+        this.pagination = response.pagination || this.pagination;
       } catch (err: any) {
         console.error('Error searching user cards:', err);
         this.error = err.message || 'Failed to search cards';
       } finally {
         this.loading = false;
+      }
+    },
+    
+    // Pagination navigation methods
+    async goToPage(userId: string, page: number, searchParams: Record<string, any> = {}) {
+      if (page < 1 || page > this.pagination.totalPages) return;
+      
+      const params = { ...searchParams, page };
+      
+      if (searchParams.username) {
+        // Use fetchCardsByUsername if we're viewing someone else's collection
+        const username = searchParams.username;
+        delete params.username;
+        await this.fetchCardsByUsername(username, params);
+      } else {
+        // Otherwise use the user ID version
+        await this.searchUserCards(userId, params);
+      }
+    },
+    
+    async nextPage(userId: string, searchParams: Record<string, any> = {}) {
+      if (this.pagination.currentPage < this.pagination.totalPages) {
+        await this.goToPage(userId, this.pagination.currentPage + 1, searchParams);
+      }
+    },
+    
+    async prevPage(userId: string, searchParams: Record<string, any> = {}) {
+      if (this.pagination.currentPage > 1) {
+        await this.goToPage(userId, this.pagination.currentPage - 1, searchParams);
       }
     },
     
@@ -170,8 +236,8 @@ export const useCardStore = defineStore('card', {
           body: { scryfallId }
         });
         
-        // Refresh the cards list
-        await this.fetchUserCards(userId);
+        // Refresh the cards list - maintain current page
+        await this.fetchUserCards(userId, this.pagination.currentPage);
         return userCard;
       } catch (err: any) {
         console.error('Error adding card:', err);
@@ -197,8 +263,8 @@ export const useCardStore = defineStore('card', {
           }
         });
         
-        // Refresh the cards list
-        await this.fetchUserCards(userId);
+        // Refresh the cards list - maintain current page
+        await this.fetchUserCards(userId, this.pagination.currentPage);
       } catch (err: any) {
         this.error = err.message || 'Failed to remove card';
       } finally {
