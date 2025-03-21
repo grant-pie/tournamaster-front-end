@@ -220,17 +220,20 @@
       <div v-if="cards.length === 0" class="text-center py-10">
         <p>No cards found matching your criteria.</p>
       </div>
-      
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="card in userCards" :key="card.id" class="relative">
         <CardItem 
-          v-for="card in filteredCards" 
-          :key="card.id" 
           :card="card" 
           :userId="userId"
           :actions="cardActions"
           @onClickAction="emitOnClickAction" 
         />
+        <div v-if="isCardInDeck(card)" class="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center">
+          <p class="text-lg font-bold text-gray-800">Card in Deck</p>
+        </div>
       </div>
+    </div>
       
       <!-- Pagination Controls -->
       <div v-if="pagination.totalPages > 1" class="mt-6 flex justify-center">
@@ -336,21 +339,15 @@ const cardStore = useCardStore();
 const { userCards, loading, error, pagination } = storeToRefs(cardStore);
 const cards = computed(() => userCards.value);
 
-const filteredCards = computed(() => {
-
-  if(!props.excludeCards) {
-    return userCards.value;
+const isCardInDeck = (card) => {
+  if (!props.excludeCards) {
+    return false;
   }
-
-  const allCards = userCards.value || [];
   
-  // Filter out cards already in the deck
-  // Make sure we're comparing the right IDs
-  const deckCardIds = props.excludeCards.map(card => card.id);
+  const deckCardIds = props.excludeCards.map(deckCard => deckCard.id);
+  return deckCardIds.includes(card.id);
+};
 
-  return allCards.filter(card => !deckCardIds.includes(card.id));
-
-});
 // Search parameters
 const searchParams = ref({
   name: '',
