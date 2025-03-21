@@ -240,8 +240,13 @@ const deckId = computed(() => route.params.id);
 const deck = computed(() => deckStore.currentDeck);
 
 const deckListHtml = computed(() => {
-  let html = ``;
-  let landHtml = ``;
+  if (!deck.value || !deck.value.userCards || deck.value.userCards.length === 0) return '';
+  
+  // Check if the first card has valid structure
+  if (!deck.value.userCards[0] || !deck.value.userCards[0].card) return '';
+
+  let html = '';
+  let landHtml = '';
   let artifactHtml = ``;
   let enchantmentHtml = ``;
   let instantHtml = ``;
@@ -253,25 +258,29 @@ const deckListHtml = computed(() => {
   let sorceryCount = 0;
   let instantCount = 0;
   let creatureCount = 0;
-  let cardCount = [];
+  let cardCount = [{
+    name: '',
+    type: ''
+  }];
   for (const card of deck.value.userCards) {
-    console.log(card.card.name)
-    
-    if(!cardCount.some(obj => obj.name === card.card.name)){
-      cardCount.push({
-        name: card.card.name,
-        type: card.card.type,
-        count: 1
-      });
-    } else {
-      const foundObject = cardCount.find(obj => obj.name === card.card.name);
-      foundObject.count++
+
+    if(card.card){
+      if(!cardCount.some(obj => obj.name === card.card.name)){
+          cardCount.push({
+            name: card.card.name,
+            type: card.card.type,
+            count: 1
+          });
+        } else {
+          const foundObject = cardCount.find(obj => obj.name === card.card.name);
+          foundObject.count++
+      }
     }
 
   }
 
   for(const card of cardCount) {
-    console.log(card)
+
     if(card.type.includes("Land")){
 
       landCount += card.count;
@@ -349,14 +358,23 @@ const colorMap = [
 
 // Get filter options from cards in deck
 const availableTypes = computed(() => {
-  if (!deck.value || !deck.value.userCards) return [];
-  const types = deck.value.userCards.map(card => card.card.type.split(' ')[0]); // Get primary type
+  if (!deck.value || !deck.value.userCards || deck.value.userCards.length === 0) return [];
+  
+  // Only map cards that have the 'card' property defined
+  const types = deck.value.userCards
+    .filter(card => card.card && card.card.type)
+    .map(card => card.card.type.split(' ')[0]); // Get primary type
+  
   return [...new Set(types)].sort();
 });
 
 const availableRarities = computed(() => {
-  if (!deck.value || !deck.value.userCards) return [];
-  const rarities = deck.value.userCards.map(card => card.card.rarity);
+  if (!deck.value || !deck.value.userCards || deck.value.userCards.length === 0) return [];
+  
+  const rarities = deck.value.userCards
+    .filter(card => card.card && card.card.rarity)
+    .map(card => card.card.rarity);
+    
   return [...new Set(rarities)].sort();
 });
 
@@ -382,20 +400,26 @@ const modalAvailableRarities = computed(() => {
 
 // Filter cards in deck based on search and filters
 const filteredCards = computed(() => {
-  if (!deck.value || !deck.value.userCards) return [];
-  
+  if (!deck.value || !deck.value.userCards || deck.value.userCards.length === 0) return [];
+
   return deck.value.userCards.filter(card => {
+    // Add a safety check to ensure card and card.card exists
+    if (!card || !card.card) return false;
+    
     // Filter by search query
-    const nameMatch = card.card.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+    const nameMatch = card.card.name && card.card.name.toLowerCase().includes(searchQuery.value.toLowerCase());
     
     // Filter by type
-    const typeMatch = !selectedType.value || card.card.type.toLowerCase().includes(selectedType.value.toLowerCase());
+    const typeMatch = !selectedType.value || 
+      (card.card.type && card.card.type.toLowerCase().includes(selectedType.value.toLowerCase()));
     
     // Filter by rarity
-    const rarityMatch = !selectedRarity.value || card.card.rarity.toLowerCase() === selectedRarity.value.toLowerCase();
+    const rarityMatch = !selectedRarity.value || 
+      (card.card.rarity && card.card.rarity.toLowerCase() === selectedRarity.value.toLowerCase());
     
     // Filter by color
-    const colorMatch = !selectedColor.value || (card.card.colors && card.card.colors.includes(selectedColor.value));
+    const colorMatch = !selectedColor.value || 
+      (card.card.colors && card.card.colors.includes(selectedColor.value));
     
     return nameMatch && typeMatch && rarityMatch && colorMatch;
   });
@@ -454,10 +478,21 @@ const addCardToDeck = async (userCardId) => {
   if (!deckId.value) return;
   
   try {
-    await deckStore.addUserCardToDeck(deckId.value, userCardId);
+    // Add loading state if needed
+    const result = await deckStore.addUserCardToDeck(deckId.value, userCardId);
     
-    // Refresh the deck data to show the newly added card
-    await deckStore.fetchDeck(deckId.value);
+    if (result) {
+      // Only refresh the deck if the card was added successfully
+      await deckStore.fetchDeck(deckId.value);
+      
+      // Verify the deck data is valid before continuing
+      if (!deckStore.currentDeck || !deckStore.currentDeck.userCards) {
+        console.error('Received invalid deck data after fetch');
+        return;
+      }
+    } else {
+      console.error('Failed to add card to deck: No deck data returned');
+    }
   } catch (error) {
     console.error('Error adding card to deck:', error);
   }
@@ -503,8 +538,9 @@ const getColorName = (colorCode) => {
 };
 
 // Watch for search/filter changes for debugging
+ /*
 watch([searchQuery, selectedType, selectedRarity, selectedColor], () => {
-  console.log({
+ console.log({
     query: searchQuery.value,
     type: selectedType.value,
     rarity: selectedRarity.value,
@@ -530,6 +566,7 @@ watch(availableCards, () => {
     all_cards: cardStore.userCards
   });
 });
+*/
 
 function copyDeckList() {
   let deckList = '';

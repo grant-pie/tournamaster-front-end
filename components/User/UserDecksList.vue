@@ -160,7 +160,7 @@
   const router = useRouter();
   const deckStore = useDeckStore();
   const decks = computed(() => deckStore.userDecks);
-  watch(decks, () => console.log(decks.value))
+
   // Create deck modal state
   const showCreateDeckModal = ref(false);
   const newDeck = ref({

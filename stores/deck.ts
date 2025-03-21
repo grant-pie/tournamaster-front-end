@@ -8,7 +8,7 @@ interface Deck {
   name: string;
   description: string;
   userId: string;
-  cards: any[];
+  userCards: any[];
   createdAt: string;
   updatedAt: string;
 }
@@ -243,12 +243,24 @@ export const useDeckStore = defineStore('deck', {
         this.loading = true;
         this.error = null;
         
+        // Check if both IDs are valid before making the API call
+        if (!deckId || !userCardId) {
+          this.error = 'Invalid deck or card ID';
+          return null;
+        }
+        
         const response = await $fetch<DeckResponse>(`${config.public.apiBaseUrl}/decks/${deckId}/user-cards/${userCardId}`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authStore.token}`
           }
         });
+        
+        // Check if the response has the expected structure
+        if (!response || !response.deck) {
+          this.error = 'Invalid response received';
+          return null;
+        }
         
         // Update the current deck if it's the one we just modified
         if (this.currentDeck && this.currentDeck.id === deckId) {
