@@ -2,10 +2,11 @@
 <template>
   <nav class="bg-gray-800 text-white p-4">
     <div class="container mx-auto flex justify-between items-center">
-      <NuxtLink to="/" class="text-xl font-bold">MTG Tournament Master</NuxtLink>
+      <NuxtLink to="/" class="text-xl font-bold">MTG Collector</NuxtLink>
       
       <div class="flex space-x-4 items-center">
         <NuxtLink 
+          v-if="isAuthenticated" 
           to="/players" 
           class="hover:text-blue-300"
         >

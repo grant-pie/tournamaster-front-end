@@ -8,7 +8,7 @@
       
       <footer class="bg-gray-800 text-white p-4 mt-8">
         <div class="container mx-auto text-center">
-          &copy; {{ new Date().getFullYear() }} MTG Tournament Master
+          &copy; {{ new Date().getFullYear() }} MTG Collector
         </div>
       </footer>
     </div>
