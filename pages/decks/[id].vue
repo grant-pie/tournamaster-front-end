@@ -139,6 +139,7 @@
                 class="w-40"
               />
             </div>
+            <div class="mt-2">{{`${card.card.text}`}}</div>
           </div>
           <button 
             @click="removeCardFromDeck(card.id)" 
